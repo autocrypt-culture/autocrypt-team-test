@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>국내 출장 도우미</title>
+<title>[국내출장] 여비 미리보기</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -68,6 +68,17 @@
   .reco ol { margin: 4px 0 6px; padding-left: 20px; }
   .reco .links { margin-top: 4px; }
   .capline { background: var(--soft); border-radius: 6px; padding: 8px 10px; font-size: 13px; margin: 10px 0 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+  .chips label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--ink); cursor: pointer; background: #fff; }
+  .chips input { width: auto; margin: 0; }
+  .chips label:has(input:checked) { background: var(--dark); color: #fff; border-color: var(--dark); }
+  .modebox { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+  .modebox .mt { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .nrow.fare { grid-template-columns: 52px 1fr; }
+  .datelist { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .datelist .dp { display: inline-flex; align-items: center; gap: 2px; }
+  .datelist input { width: 150px; margin: 0; }
+  .datelist button { border: none; background: none; color: var(--sub); cursor: pointer; font-size: 16px; }
   .nrow .nav { border: 1px solid #03c75a; background: #fff; color: #03a24a; text-decoration: none; padding: 7px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; white-space: nowrap; }
   .nrow .nav:hover { background: #03c75a; color: #fff; }
   .nrow .est { font-size: 11px; color: var(--sub); padding-bottom: 9px; }
@@ -112,7 +123,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>국내 출장 도우미</h1>
+  <h1>[국내출장] 여비 미리보기</h1>
   <p class="lead">출장기간과 출발지·도착지만 넣으면 이동거리와 출장여비가 계산됩니다. 오른쪽 기안 양식 칸을 그대로 복사해서 붙여넣으세요.</p>
 
   <div class="grid">
@@ -122,8 +133,11 @@
         <div class="fields">
           <label>출장자 <b>*</b><input id="who" placeholder="홍길동 과장"></label>
           <label>동행자<input id="companions" placeholder="없으면 비워두세요"></label>
-          <label>출발일 <b>*</b><input type="date" id="start"></label>
-          <label>복귀일 <b>*</b><input type="date" id="end"></label>
+          <label id="startL">출발일 <b>*</b><input type="date" id="start"></label>
+          <label id="endL">복귀일 <b>*</b><input type="date" id="end"></label>
+          <label class="full addchk"><input type="checkbox" id="spread">날짜가 띄엄띄엄이에요 (예: 11/9, 11/10, 11/16 각각 당일)</label>
+          <!-- 띄엄띄엄 날짜: 날마다 왕복, 숙박 없음으로 계산 -->
+          <div class="full hide" id="dateBox"><div id="dateList" class="datelist"></div><button class="add" id="addDate" type="button">+ 날짜 추가</button></div>
         </div>
       </section>
 
@@ -143,7 +157,16 @@
       <section class="panel">
         <h2><span class="n">3</span>어떻게</h2>
         <div id="recoCard" class="reco hide"></div>
-        <div class="seg" id="how"><button data-h="car" class="on">자차</button><button data-h="train">기차</button><button data-h="bus">고속버스</button><button data-h="company">공용차량</button></div>
+        <div class="q">교통수단 <span class="muted" style="font-weight:400">· 섞어서 가면 여러 개 고르세요 (예: 기차 + 택시)</span></div>
+        <div class="chips" id="modes">
+          <label><input type="checkbox" value="car" checked>자차</label>
+          <label><input type="checkbox" value="rental">렌터카</label>
+          <label><input type="checkbox" value="company">공용차량</label>
+          <label><input type="checkbox" value="train">기차</label>
+          <label><input type="checkbox" value="bus">고속버스</label>
+          <label><input type="checkbox" value="local">지하철·버스</label>
+          <label><input type="checkbox" value="taxi">택시</label>
+        </div>
         <div class="result" id="routeBox">
           <div id="routeCap"><div id="routeHead"></div><div id="rmap" class="hide"></div></div>
           <!-- 자차: 네이버 버튼 바로 옆에 옮겨 적을 칸. 예상 거리는 칸 안에 회색 글씨(placeholder)로만 보여줌 -->
@@ -155,18 +178,29 @@
             <div class="nrow" id="rowBack"><span class="nt">오는 길</span><a id="navBack" class="nav" target="_blank" rel="noopener">네이버 ↗</a>
               <input type="number" id="kmBack" step="0.1" min="0" class="need" aria-label="오는 길 km">
               <input type="number" id="tollBack" step="100" min="0" class="need" placeholder="통행료 (무료 0)" aria-label="오는 길 통행료"></div>
-            <div class="nfoot"><label class="inline">유류 <select id="fuel" class="fuelsel"><option>휘발유</option><option>경유</option><option>LPG</option><option>전기차</option></select></label>
+            <div class="nfoot"><label class="inline" id="fuelL">유류 <select id="fuel" class="fuelsel"><option>휘발유</option><option>경유</option><option>LPG</option><option>전기차</option></select></label>
               <a href="#" class="save" id="saveRoute">경로 이미지 저장 ↓</a></div>
           </div>
-          <!-- 기차·고속버스: 거리로 낸 예상 요금을 보여주고, 실제 요금을 알면 한 칸만 고치게 함 -->
-          <div id="fareBox" class="hide">
-            <div class="nhead" id="fareHead"></div>
-            <div class="nrow fare"><span class="nt">가는 길</span><span class="est" id="fareGoEst"></span>
-              <input type="number" id="fareOne" step="100" min="0" placeholder="실제 요금 (모르면 비워두기)" aria-label="가는 길 실제 요금"></div>
-            <div class="nrow fare" id="fareBackRow"><span class="nt">오는 길</span><span class="est" id="fareBackEst"></span>
-              <input type="number" id="fareBack" step="100" min="0" placeholder="실제 요금 (모르면 비워두기)" aria-label="오는 길 실제 요금"></div>
-            <div class="links"><a id="fareLink" target="_blank" rel="noopener">요금 확인 ↗</a><a id="transitLink" target="_blank" rel="noopener">네이버 대중교통 길찾기 ↗</a></div>
-          </div>
+          <!-- 수단별 비용 칸. 고른 수단만 보임 -->
+          <div id="box_rental" class="modebox hide"><div class="mt">렌터카 <span class="muted" style="font-weight:400">· 쏘카 비즈니스, 1일 <span id="rentCap"></span> 안쪽 권장</span></div>
+            <div class="fields"><label>대여요금 (전체, 원)<input type="number" id="rentFee" min="0" step="100"></label><label>주유·충전비 (원)<input type="number" id="rentFuel" min="0" step="100" placeholder="모르면 비워두세요"></label></div>
+            <div class="links"><a href="https://business.socar.kr/" target="_blank" rel="noopener">쏘카 비즈니스 ↗</a></div></div>
+          <div id="box_company" class="modebox hide"><div class="mt">공용차량 <span class="muted" style="font-weight:400">· 유류·통행료는 차량에 비치된 카드로 결제</span></div>
+            <div class="fields"><label>연료·충전비 예상 (원)<input type="number" id="compFuel" min="0" step="100" placeholder="모르면 비워두세요"></label><span></span></div></div>
+          <!-- 기차·고속버스·택시: 가는 길·오는 길 요금. 그 수단 하나로만 가면 거리로 낸 대략값을 회색 글씨로 보여줌 -->
+          <div id="box_train" class="modebox hide"><div class="mt">기차 요금 <span class="muted" style="font-weight:400">· 1인 기준</span></div>
+            <div class="nrow fare"><span class="nt">가는 길</span><input type="number" id="train_go" step="100" min="0" aria-label="기차 가는 길 요금"></div>
+            <div class="nrow fare back"><span class="nt">오는 길</span><input type="number" id="train_back" step="100" min="0" aria-label="기차 오는 길 요금"></div>
+            <div class="links"><a href="https://www.letskorail.com/" target="_blank" rel="noopener">코레일 시간표·요금 ↗</a></div></div>
+          <div id="box_bus" class="modebox hide"><div class="mt">고속버스 요금 <span class="muted" style="font-weight:400">· 1인 기준</span></div>
+            <div class="nrow fare"><span class="nt">가는 길</span><input type="number" id="bus_go" step="100" min="0" aria-label="고속버스 가는 길 요금"></div>
+            <div class="nrow fare back"><span class="nt">오는 길</span><input type="number" id="bus_back" step="100" min="0" aria-label="고속버스 오는 길 요금"></div>
+            <div class="links"><a href="https://www.kobus.co.kr/" target="_blank" rel="noopener">고속버스 시간표·요금 ↗</a></div></div>
+          <div id="box_taxi" class="modebox hide"><div class="mt">택시 요금 <span class="muted" style="font-weight:400">· 편도 30km 미만, 네이버 자동차 탭의 '택시비' 참고. 탄 구간을 다 더해서</span></div>
+            <div class="nrow fare"><span class="nt">가는 길</span><input type="number" id="taxi_go" step="100" min="0" aria-label="택시 가는 길 요금"></div>
+            <div class="nrow fare back"><span class="nt">오는 길</span><input type="number" id="taxi_back" step="100" min="0" aria-label="택시 오는 길 요금"></div></div>
+          <div id="box_local" class="modebox hide"><div class="mt">지하철·버스</div><p class="muted" style="margin:0" id="localText"></p></div>
+          <div class="links hide" id="transitRow"><a id="transitLink" class="nav" target="_blank" rel="noopener">네이버 대중교통 길찾기 ↗</a></div>
           <div class="muted" id="routeNote" style="margin-top:6px"></div>
         </div>
       </section>
@@ -199,22 +233,12 @@
 
       <!-- 드물게 쓰는 칸. 대부분은 열 필요 없음 -->
       <details class="panel more">
-        <summary>필요할 때만 (주차비, 인원, 택시 등)</summary>
+        <summary>필요할 때만 (주차비, 인원, 편도만 가는 경우 등)</summary>
         <div class="fields" style="margin-top:12px">
           <label id="parkingL">주차비 (원)<input type="number" id="parking" min="0" step="100" placeholder="법인카드 결제"></label>
           <label>인원<input type="number" id="people" min="1" placeholder="자동 (출장자+동행자)"></label>
           <label id="stayNightsL">숙박 일수 (박)<input type="number" id="stayNights" min="1" placeholder="자동"></label>
           <label id="tripDaysL">오가는 날 수 (일)<input type="number" id="tripDays" min="1" placeholder="자동"></label>
-        </div>
-        <div id="pubBox" class="hide" style="margin-top:10px">
-          <div class="chk">
-            <label><input type="checkbox" id="useSubway">지하철·버스도 탐</label>
-            <label><input type="checkbox" id="useTaxi">역·터미널 ↔ 방문지 택시</label>
-          </div>
-          <div class="fields">
-            <label id="taxiLabel">택시 편도 (km)<input type="number" id="taxiKm" min="0" step="0.1" placeholder="모르면 비워두세요"></label>
-            <label>교통비 직접 수정 (원)<input type="number" id="pubCost" min="0" step="100" placeholder="자동 예상"></label>
-          </div>
         </div>
         <div class="chk" style="margin-top:10px"><label><input type="checkbox" id="roundTrip" checked>돌아오는 길도 계산 (편도만 가면 해제)</label></div>
       </details>
@@ -303,14 +327,29 @@ const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 const val = id => $(id).value.trim();
 const link = (t, u) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)} ↗</a>`;
 const hm = m => m >= 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${m}분`;
-let how = "car";
+// 교통수단은 섞어 쓸 수 있어 여러 개 고름 (기안 양식의 교통수단 이름)
+const NAME = { car: "자가차량", rental: "렌터카", company: "공용차량", train: "기차", bus: "고속버스", local: "지하철·버스", taxi: "택시" };
+const modes = () => new Set([...document.querySelectorAll("#modes input:checked")].map(i => i.value));
+const driving = M => M.has("car") || M.has("rental") || M.has("company"); // 차로 가는 수단: 네이버 거리우선 km·통행료가 필요
 
 // ---- 날짜 ----
 const D = s => s ? new Date(s + "T00:00:00") : null;
 const wk = d => "일월화수목금토"[d.getDay()];
 const full = s => s ? `${s}(${wk(D(s))})` : "";
 const short = s => s ? `${D(s).getMonth() + 1}/${D(s).getDate()}(${wk(D(s))})` : "";
-function nights() { const s = D(val("start")), e = D(val("end")); return s && e ? Math.round((e - s) / 86400000) : null; }
+// 띄엄띄엄 날짜: 고른 날짜들(정렬). 이때는 숙박 없이 날마다 왕복
+const spread = () => $("spread").checked;
+const spreadDates = () => [...document.querySelectorAll(".dpick")].map(i => i.value).filter(Boolean).sort();
+const firstDay = () => spread() ? spreadDates()[0] || "" : val("start");
+function nights() { if (spread()) return spreadDates().length ? 0 : null; const s = D(val("start")), e = D(val("end")); return s && e ? Math.round((e - s) / 86400000) : null; }
+function addDate(v = "") {
+  const el = document.createElement("span");
+  el.className = "dp";
+  el.innerHTML = `<input type="date" class="dpick" aria-label="출장 날짜"><button type="button" title="삭제">×</button>`;
+  el.querySelector("input").value = v;
+  el.querySelector("button").onclick = () => { el.remove(); update(); };
+  $("dateList").appendChild(el);
+}
 function people() { return +val("people") || 1 + (val("companions") ? val("companions").split(",").filter(x => x.trim()).length : 0); }
 
 // ---- 경유지 ----
@@ -456,7 +495,7 @@ function drawRoute() {
   $("routeHead").innerHTML = !route ? `<span class="muted">출발지와 도착지를 넣으면 이동거리가 자동으로 나옵니다.</span>`
     : route.busy ? "경로 계산 중…"
     : route.err ? `<span style="color:var(--accent)">${esc(route.err)}</span>`
-    : how === "car" ? `<span class="muted">경로를 찾았어요. 거리는 아래 네이버 버튼으로 확인해 주세요.</span>${foundHtml()}`
+    : driving(modes()) ? `<span class="muted">경로를 찾았어요. 거리는 아래 네이버 버튼으로 확인해 주세요.</span>${foundHtml()}`
     : `<span class="muted">대략</span> 가는 길 ${route.oneWay}km${route.round ? ` · 오는 길 ${backKm()}km` : ""}${foundHtml()}`;
   $("rmap").classList.toggle("hide", !ok);
   if (ok && window.L) {
@@ -478,20 +517,12 @@ function drawRoute() {
     rmap.fitBounds(L.latLngBounds(route.line), { padding: [30, 30] });
   }
   renderReco(ok);
-  // 자차일 때만 네이버 칸. 예상 거리는 칸 옆에 참고로만
-  $("naverBox").classList.toggle("hide", !(ok && how === "car"));
-  // 기차·고속버스: 예상 편도 요금 + 실제 요금 확인 사이트
-  const fareMode = ok && (how === "train" || how === "bus");
-  $("fareBox").classList.toggle("hide", !fareMode);
-  if (fareMode) {
-    const f = K.fareEstimate[MAIN[how]];
-    $("fareHead").innerHTML = `${MAIN[how]} 요금 <span class="muted">· 거리 × km당 ${f.perKm}원으로 낸 대략값이에요. 정확한 요금을 알면 넣어주세요</span>`;
-    $("fareGoEst").textContent = `예상 약 ${won(fareGuess(route.oneWay))}`;
-    $("fareBackEst").textContent = route.round ? `예상 약 ${won(fareGuess(backKm()))}` : "";
-    $("fareBackRow").classList.toggle("hide", !route.round);
-    $("fareLink").textContent = FARE_SITE[how][0] + " ↗"; $("fareLink").href = FARE_SITE[how][1];
-    $("transitLink").href = naverDir(route.pts, "transit");
-  }
+  // 차로 가는 수단(자차·렌터카·공용차량)을 골랐을 때만 네이버 거리우선 칸. 유류 종류는 자차만
+  const M = modes();
+  $("naverBox").classList.toggle("hide", !(ok && driving(M)));
+  $("fuelL").classList.toggle("hide", !M.has("car"));
+  $("transitRow").classList.toggle("hide", !(ok && ["train", "bus", "local", "taxi"].some(m => M.has(m))));
+  if (ok) $("transitLink").href = naverDir(route.pts, "transit");
   $("rowBack").classList.toggle("hide", !(ok && route.round));
   if (ok) {
     // 예상 거리는 칸 안 회색 글씨로만 (칸을 비워두면 예상 거리로 계산)
@@ -502,7 +533,7 @@ function drawRoute() {
       $("kmBack").placeholder = "거리우선 km";
     }
   }
-  $("routeNote").textContent = ok && how === "car" ? "네이버 화면은 캡쳐해서 기안에 첨부하세요." : "";
+  $("routeNote").textContent = ok && driving(M) ? "네이버 화면은 캡쳐해서 기안에 첨부하세요." : "";
 }
 // 추천 카드: 편도 거리로 어떤 교통수단부터 볼지 한 줄로 알려줌 (기준은 rules.js 의 recommend)
 // 실제 대중교통 경로·시간·요금은 도우미가 계산할 수 없어 네이버 대중교통 길찾기로 확인하게 함
@@ -559,26 +590,71 @@ document.addEventListener("click", async e => {
 });
 
 // ---- 기안 양식 칸 ----
+const r100 = x => Math.round(x / 100) * 100;
+// 기차·고속버스·택시를 '그것 하나로만' 갈 때는 거리로 대략값을 낼 수 있음. 섞어 가면 구간을 모르니 실제 요금만 씀
+function guessFare(mode, km, M) {
+  if (!km) return 0;
+  const main = ["car", "rental", "company", "train", "bus", "taxi"].filter(m => M.has(m));
+  if (main.length !== 1 || main[0] !== mode) return 0;
+  const F = K.fareEstimate;
+  if (mode === "taxi") return taxiFare(km);
+  const f = F[NAME[mode]];
+  return Math.max(f.min, r100(km * f.perKm));
+}
+const taxiFare = km => r100(K.fareEstimate.택시기본 + Math.max(0, km - 1.6) * K.fareEstimate.택시km);
 function calc() {
-  // 네이버 거리를 안 넣은 칸은 예상 거리로 대신 계산하고, 기안 문구에 '예상'이라고 표시
-  const ok = route && route.total, round = $("roundTrip").checked;
-  // 자차 유류비는 증빙(네이버 거리우선)과 같아야 하므로 네이버 km만 씀. 비어 있으면 유류비를 계산하지 않음
-  // 기차·고속버스 예상 요금은 거리 기준 대략값이라 무료 길찾기 거리를 씀
-  const go = how === "car" ? +val("kmGo") || 0 : ok ? route.oneWay : 0;
-  const back = !round ? 0 : how === "car" ? +val("kmBack") || 0 : ok && route.round ? backKm() : 0;
-  const kmGuess = how === "car" && ok && (!val("kmGo") || (round && !val("kmBack")));
-  const n = nights(), p = people(), days = n > 0 ? n + 1 : 1;
-  // 숙박하면 처음 가고 마지막에 한 번 돌아옴. 숙박 안 하면 오가는 날마다 왕복 (예: 4박5일 동안 매일 출퇴근)
+  const M = modes(), ok = route && route.total, round = $("roundTrip").checked;
+  const drive = driving(M), car = M.has("car");
+  // 차로 가면 증빙(네이버 거리우선) 숫자만 씀. 비어 있으면 유류비를 계산하지 않음
+  // 기차·고속버스 대략 요금은 무료 길찾기 거리를 씀
+  const go = drive ? +val("kmGo") || 0 : ok ? route.oneWay : 0;
+  const back = !round ? 0 : drive ? +val("kmBack") || 0 : ok && route.round ? backKm() : 0;
+  const kmGuess = drive && ok && (!val("kmGo") || (round && !val("kmBack")));
+  const n = nights(), p = people(), sp = spread();
+  const days = sp ? spreadDates().length || 1 : n > 0 ? n + 1 : 1;
+  // 숙박하면 처음 가고 마지막에 한 번 돌아옴. 숙박 안 하면(띄엄띄엄 날짜 포함) 오가는 날마다 왕복
   const lodging = stayMode() === "yes";
   const stayN = lodging ? +val("stayNights") || Math.max(1, n || 0) : 0;
-  const reps = lodging ? 1 : +val("tripDays") || days;
+  const reps = lodging ? 1 : sp ? days : +val("tripDays") || days;
   const km1 = Math.round((go + back) * 10) / 10, km = Math.round(km1 * reps * 10) / 10;
   const per = K.fuelPerKm[$("fuel").value];
-  const fuel = how === "car" && km ? Math.round(km * per) : 0;
-  const toll1 = how === "car" ? (+val("tollGo") || 0) + (round ? +val("tollBack") || 0 : 0) : 0, toll = toll1 * reps;
-  const parking = how === "car" ? +val("parking") || 0 : 0;
-  const pubE = pubEstimate(days, reps, p);
-  const pub = how === "car" ? 0 : +val("pubCost") || pubE.sum;
+  const fuel = car && km ? Math.round(km * per) : 0;
+  const tollOne = drive ? (+val("tollGo") || 0) + (round ? +val("tollBack") || 0 : 0) : 0;
+  // 통행료: 자차는 '자차·통행료' 칸, 렌터카·공용차량은 일반 교통비 안에 같이 적음
+  const toll1 = car ? tollOne : 0, toll = toll1 * reps;
+  const parking = drive ? +val("parking") || 0 : 0;
+  // 일반 교통비: 고른 수단마다 한 줄씩 (기차·버스는 인원수만큼, 택시·렌터카는 한 대 요금)
+  const lines = [];
+  let pub = 0, guessed = false;
+  if (M.has("rental")) {
+    const fee = +val("rentFee") || 0, rf = +val("rentFuel") || 0, rt = car ? 0 : tollOne * reps, t = fee + rf + rt;
+    pub += t;
+    lines.push(fee || rf || rt ? `렌터카 대여 ${won(fee) || "0원"}${rf ? ` + 주유·충전 ${won(rf)}` : ""}${rt ? ` + 통행료 ${won(rt)}` : ""} = ${won(t)}` : "렌터카: 대여요금을 넣어주세요");
+  }
+  if (M.has("company")) {
+    const cf = +val("compFuel") || 0, ct = car || M.has("rental") ? 0 : tollOne * reps, t = cf + ct;
+    pub += t;
+    lines.push(t ? `공용차량 연료·충전 ${won(cf) || "0원"}${ct ? ` + 통행료 ${won(ct)}${reps > 1 ? ` (${won(tollOne)} × ${reps}일)` : ""}` : ""} = ${won(t)} (차량 비치 카드 결제)` : "공용차량 (유류·통행료는 차량 비치 카드 결제)");
+  }
+  for (const m of ["train", "bus", "taxi"]) {
+    if (!M.has(m)) continue;
+    const gGo = guessFare(m, go, M), gBack = round ? guessFare(m, back || go, M) : 0;
+    const fGo = +val(m + "_go") || gGo, fBack = round ? +val(m + "_back") || gBack : 0;
+    if (!fGo && !fBack) { lines.push(`${NAME[m]}: 요금을 넣어주세요`); continue; }
+    if ((!val(m + "_go") && gGo) || (round && !val(m + "_back") && gBack)) guessed = true;
+    const pp = m === "taxi" ? 1 : p, t = (fGo + fBack) * reps * pp;
+    pub += t;
+    lines.push(`${NAME[m]} 가는 길 ${won(fGo)}${round ? ` + 오는 길 ${won(fBack)}` : ""}${reps > 1 ? ` × ${reps}일` : ""}${pp > 1 ? ` × ${pp}명` : ""} = ${won(t)}`);
+  }
+  if (M.has("local")) {
+    const t = K.fareEstimate.지하철버스 * (round ? 2 : 1) * days * p;
+    pub += t;
+    lines.push(`지하철·버스 ${won(K.fareEstimate.지하철버스)} × ${round ? "하루 2회" : "하루 1회"} × ${days}일${p > 1 ? ` × ${p}명` : ""} = ${won(t)}`);
+  }
+  const kinds = ["rental", "company", "train", "bus", "local", "taxi"].filter(m => M.has(m)).map(m => m === "taxi" ? `택시(편도 ${K.taxiMaxKmOneWay}km 미만)` : NAME[m]);
+  const pubLine = kinds.length ? `교통수단: ${kinds.join(", ")}\n내역: ${lines.join("\n")}${guessed ? "\n(거리 기준 예상 금액 포함)" : ""}` : "";
+  // 택시 한 번에 30km 넘을 것 같은지: 30km 택시비보다 비싸면 알림
+  const taxiOver = M.has("taxi") && Math.max(+val("taxi_go") || 0, +val("taxi_back") || 0) > taxiFare(K.taxiMaxKmOneWay);
   // 숙박비를 안 넣으면 권장 금액으로 예상
   const cls = cityClass(), cap = cls && K.hotelCap[cls];
   const hotelPer = +val("hotel") || cap || 0;
@@ -586,12 +662,12 @@ function calc() {
   // 식비: 숙박출장은 1박당 석식 1회, 외근·당일출장은 21시 넘어 일한 날만 야근 식비 (점심은 없음)
   const meals = lodging ? stayN : $("lateYes").checked ? (days > 1 ? +val("lateDays") || 1 : 1) : 0, mealPer = lodging ? K.dinnerPerNight : K.lateMeal;
   const meal = meals * mealPer * p;
-  return { n, p, days, sleep: lodging, stayN, reps, km1, km, go, back, kmGuess, per, fuel, toll1, toll, parking, pub, pubE, hotelPer, hotelGuess: !val("hotel") && !!cap, hotel, meals, mealPer, meal,
+  return { M, car, drive, n, p, days, sp, sleep: lodging, stayN, reps, km1, km, go, back, kmGuess, per, fuel, toll1, toll, parking, pub, pubLine, taxiOver, hotelPer, hotelGuess: !val("hotel") && !!cap, hotel, meals, mealPer, meal,
     total: fuel + toll + parking + pub + hotel + meal };
 }
-// 숙박 여부: 직접 고르지 않았으면 기간으로 정함 (하루면 숙박 안 함, 이틀 이상이면 숙박함)
+// 숙박 여부: 직접 고르지 않았으면 기간으로 정함 (하루·띄엄띄엄이면 숙박 안 함, 이틀 이상 이어지면 숙박함)
 let stayPick = null;
-function stayMode() { const n = nights(); return !(n > 0) ? "no" : stayPick || "yes"; } // 하루짜리는 항상 숙박 없음
+function stayMode() { const n = nights(); return spread() || !(n > 0) ? "no" : stayPick || "yes"; }
 // 숙박: 도착지 지역의 권장 금액과 숙소 검색 버튼 (지역·날짜가 채워진 채로 열림)
 const CAP_TEXT = () => Object.entries(K.hotelCap).map(([k, v]) => `${k === "특별시" ? "서울" : k} ${v / 10000}만`).join(" · ");
 function hotelArea() {
@@ -611,54 +687,24 @@ function renderHotel(cls, capV) {
     link("아고다", `https://www.agoda.com/ko-kr/search?textToSearch=${enc(area)}${s && e ? `&checkIn=${s}&checkOut=${e}` : ""}&rooms=1&adults=1`),
   ].join("") : "";
 }
-// 기차·고속버스·공용차량 예상 교통비 (도로 거리 기준 대략값. rules.js 의 fareEstimate)
-const MAIN = { train: "기차", bus: "고속버스", company: "공용차량" };
-const r100 = x => Math.round(x / 100) * 100;
-const fareGuess = km => { const f = K.fareEstimate[MAIN[how]]; return f && km ? Math.max(f.min, r100(km * f.perKm)) : 0; };
-const FARE_SITE = { train: ["코레일에서 요금 확인", "https://www.letskorail.com/"], bus: ["고속버스 요금 확인", "https://www.kobus.co.kr/"] };
-function pubEstimate(days, reps, p) {
-  const F = K.fareEstimate, lines = [], kinds = [];
-  let sum = 0;
-  if (how === "car") return { sum, lines, kinds };
-  const oneWay = route && route.oneWay, round = $("roundTrip").checked && route && route.round;
-  kinds.push(MAIN[how]);
-  if ((how === "train" || how === "bus") && oneWay) {
-    // 가는 길·오는 길은 거리가 다를 수 있어(복귀지가 다른 경우) 따로 계산. 실제 요금을 넣었으면 그 값
-    const realGo = +val("fareOne"), realBack = +val("fareBack");
-    const go = realGo || fareGuess(oneWay), back = round ? realBack || fareGuess(backKm()) : 0;
-    const t = (go + back) * reps * p, guess = !realGo || (round && !realBack);
-    sum += t;
-    lines.push(`${MAIN[how]} 가는 길 ${realGo ? "" : "약 "}${won(go)}${round ? ` + 오는 길 ${realBack ? "" : "약 "}${won(back)}` : ""}${reps > 1 ? ` × ${reps}일` : ""} × ${p}명 = ${won(t)}${guess ? " (거리 기준 예상)" : ""}`);
-  }
-  if (how === "company") lines.push("공용차량 (회사 차량, 유류·통행료는 법인카드)");
-  if ($("useSubway").checked) {
-    const t = F.지하철버스 * 2 * days * p;
-    sum += t; kinds.push("지하철", "버스");
-    lines.push(`지하철·버스 ${won(F.지하철버스)} × 하루 2회 × ${days}일 × ${p}명 = ${won(t)}`);
-  }
-  if ($("useTaxi").checked) {
-    kinds.push(`택시(편도 ${K.taxiMaxKmOneWay}km 미만)`);
-    const km = +val("taxiKm");
-    if (km) {
-      const fare = r100(F.택시기본 + Math.max(0, km - 1.6) * F.택시km), t = fare * 2 * days;
-      sum += t;
-      lines.push(`택시 편도 ${km}km 약 ${won(fare)} × 하루 왕복 × ${days}일 = ${won(t)}`);
-    } else lines.push("택시 (거리를 넣으면 예상 금액 계산)");
-  }
-  return { sum, lines, kinds };
+// 출장기간 칸: 띄엄띄엄이면 날짜를 나열
+function periodText(c) {
+  if (c.sp) { const ds = spreadDates(); return ds.length ? `${ds.map((d, i) => i ? full(d).slice(5) : full(d)).join(", ")}  [총 ${ds.length}일, 각각 당일]` : ""; }
+  const s = val("start"), e = val("end");
+  // 여러 날인데 숙박 없이 매일 오가면 'N박'이 아니라 날 수로 적음
+  return s && e ? `${full(s)} ~ ${full(e)}  [총 ${c.n > 0 && !c.sleep ? `${c.n + 1}일, 숙박 없이 매일 오감` : `${c.n}박${c.n + 1}일`}]` : "";
 }
 function cells() {
-  const c = calc(), s = val("start"), e = val("end");
+  const c = calc();
   const ov = [
     ["출장자", val("who")], ["동행자", val("companions")],
-    ["출장기간", s && e ? `${full(s)} ~ ${full(e)}  [총 ${c.n}박${c.n + 1}일]` : ""],
+    ["출장기간", periodText(c)],
     ["출장장소", [`- 출발지 : ${placeName($("origin"))}`, ways().length ? `- 경유지 : ${[...document.querySelectorAll(".way")].filter(i => i.value.trim()).map(placeName).join(", ")}` : "", `- 도착지 : ${placeName($("dest"))}`, backEl() ? `- 복귀지 : ${placeName(backEl())}` : ""].filter(Boolean).join("\n")],
     ["출장계획 (업무내용)", val("plan")],
   ];
-  const pubText = how !== "car" ? `교통수단: ${c.pubE.kinds.join(", ")}\n내역: ${val("pubCost") ? `${won(c.pub)} (직접 입력)` : c.pubE.lines.join("\n")}` : "";
   const cost = [
-    ["일반 교통비", c.pub, pubText],
-    ["유류비", c.fuel, c.fuel ? `이동거리 ${c.km}km${c.back ? ` (가는 길 ${c.go}km + 오는 길 ${c.back}km${c.reps > 1 ? `) × ${c.reps}일` : ")"}` : c.reps > 1 ? ` (${c.km1}km × ${c.reps}일)` : ""} · 유류종류 ${$("fuel").value} · 계산식 ${c.km}km × ${c.per}원(${K.fuelPeriod.label}) = ${won(c.fuel)}` : c.kmGuess ? "네이버 거리우선 km를 넣으면 계산됩니다" : ""],
+    ["일반 교통비", c.pub, c.pubLine],
+    ["유류비", c.fuel, c.fuel ? `이동거리 ${c.km}km${c.back ? ` (가는 길 ${c.go}km + 오는 길 ${c.back}km${c.reps > 1 ? `) × ${c.reps}일` : ")"}` : c.reps > 1 ? ` (${c.km1}km × ${c.reps}일)` : ""} · 유류종류 ${$("fuel").value} · 계산식 ${c.km}km × ${c.per}원(${K.fuelPeriod.label}) = ${won(c.fuel)}` : c.car && c.kmGuess ? "네이버 거리우선 km를 넣으면 계산됩니다" : ""],
     ["통행료", c.toll, c.toll ? `예상금액 ${won(c.toll)}${val("tollGo") && val("tollBack") && c.back ? ` (가는 길 ${won(+val("tollGo"))} + 오는 길 ${won(+val("tollBack"))}${c.reps > 1 ? `) × ${c.reps}일` : ")"}` : c.reps > 1 ? ` (${won(c.toll1)} × ${c.reps}일)` : ""}` : ""],
     ["주차비", c.parking, c.parking ? `예상금액 ${won(c.parking)} / 법인카드 사용` : ""],
     ["숙박비", c.hotel, c.hotel ? `${won(c.hotelPer)} × ${c.stayN}박 × ${c.p}명${c.hotelGuess ? " (권장 금액 기준 예상)" : ""}` : ""],
@@ -677,13 +723,13 @@ function render() {
     + `<tr class="total"><th>합계</th>${td(won(c.total), "money")}<td class="v empty"></td></tr>`;
 
   // 참고: 출장 구분, 마감, 권장 금액
-  const notes = [], oneWay = +val("kmGo") || (route && route.oneWay);
+  const notes = [], oneWay = (c.drive && +val("kmGo")) || (route && route.oneWay);
   const kind = c.sleep ? "국내숙박출장" : oneWay ? (oneWay >= R.tripType.outingKm ? "국내당일출장" : "외근") : "";
   // 네이버 거리를 넣기 전에는 대략 거리로 미리 보여주고, 넣으면 그 거리로 확정
-  const rough = !+val("kmGo") && how === "car";
+  const rough = !(c.drive && +val("kmGo"));
   if (kind) notes.push(["출장/외근", `${kind}${oneWay ? ` (편도 ${rough ? "대략 " : ""}${oneWay}km, ${R.tripType.outingKm}km 기준${rough ? " · 네이버 거리 넣으면 확정" : ""})` : ""}`]);
-  if (val("start")) {
-    const due = D(val("start")); due.setDate(due.getDate() - R.apply.daysBefore);
+  if (firstDay()) {
+    const due = D(firstDay()); due.setDate(due.getDate() - R.apply.daysBefore);
     const t = new Date(); t.setHours(0, 0, 0, 0);
     notes.push([`기안 승인 마감`, `${short(`${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-${String(due.getDate()).padStart(2, "0")}`)} (출발 ${R.apply.daysBefore}일 전)${t > due ? " · 지남, 사유 함께 기재" : ""}`, t > due]);
   }
@@ -695,15 +741,17 @@ function render() {
     $("hotel").placeholder = capV ? `모르면 비워두세요 (${won(capV)}로 계산)` : "모르면 비워두세요 (권장 금액으로 계산)";
     renderHotel(cls, capV);
   }
-  if (how !== "car" && $("useTaxi").checked && +val("taxiKm") >= K.taxiMaxKmOneWay) notes.push(["택시 확인", `편도 ${val("taxiKm")}km → 내역에 이유를 적어주세요`, true]);
+  if (c.taxiOver) notes.push(["택시 확인", `택시비가 ${won(taxiFare(K.taxiMaxKmOneWay))}을 넘어 편도 ${K.taxiMaxKmOneWay}km를 넘을 수 있어요 → 출장계획에 이유를 적어주세요`, true]);
+  if (c.M.has("rental")) { const capR = K.rentcarCap.normal, days = c.reps; if (+val("rentFee") > capR * days) notes.push(["렌터카 확인", `대여요금이 1일 ${won(capR)} × ${days}일보다 높아요 (전기차는 1일 ${won(K.rentcarCap.ev)}) → 이유를 적어주세요`, true]); }
+  if (!c.M.size) notes.push(["교통수단", "3번에서 교통수단을 하나 이상 골라주세요", true]);
   if (c.p >= K.groupConsultFrom) notes.push([`${c.p}명 이동`, "담당 팀과 교통·숙소 미리 상의", true]);
-  if (how === "car") {
+  if (c.car) {
     // 출발일(없으면 오늘)이 단가 적용 기간 밖이면 새 분기 단가가 나왔을 수 있음
-    const ref = val("start") || new Date().toISOString().slice(0, 10), P = K.fuelPeriod;
+    const ref = firstDay() || new Date().toISOString().slice(0, 10), P = K.fuelPeriod;
     const out = ref < P.from || ref > P.to;
     notes.push(["유류비 단가", `${P.label} (${P.from.slice(5).replace("-", "/")}~${P.to.slice(5).replace("-", "/")}) · 1km ${$("fuel").value} ${K.fuelPerKm[$("fuel").value]}원${out ? " · 출발일이 적용 기간 밖입니다. 최신 공지 단가를 확인하세요" : ""}`, out]);
   }
-  if (how === "car") notes.push(["첨부","네이버 길찾기 [거리우선] 화면 캡쳐 (가는 길·오는 길)"]);
+  if (c.drive) notes.push(["첨부", "네이버 길찾기 [거리우선] 화면 캡쳐 (가는 길·오는 길)"]);
   if (c.kmGuess) notes.push(["네이버 거리", "아직 안 넣었습니다 → [네이버 ↗] 옆 노란 칸에 거리우선 km·통행료를 넣어주세요", true]);
   $("returnElseLabel").classList.toggle("hide", !$("roundTrip").checked);
   $("backRow").classList.toggle("hide", !($("roundTrip").checked && $("returnElse").checked));
@@ -721,10 +769,23 @@ function render() {
   $("lateText").textContent = `${c.days > 1 ? "21시 넘어 일한 날이 있어요" : "21시 넘어 일해요"} (야근 식비 ${won(K.lateMeal)})`;
   $("lateL").classList.toggle("hide", !($("lateYes").checked && c.days > 1));
   $("tripDaysL").classList.toggle("hide", c.sleep || c.days < 2);
-  $("parkingL").classList.toggle("hide", how !== "car");
+  $("parkingL").classList.toggle("hide", !c.drive);
+  // 고른 수단의 비용 칸만 보이게, 한 가지 수단으로만 가면 대략 요금을 회색 글씨로
+  for (const m of ["rental", "company", "train", "bus", "taxi", "local"]) $("box_" + m).classList.toggle("hide", !c.M.has(m));
+  document.querySelectorAll(".modebox .nrow.back").forEach(r => r.classList.toggle("hide", !$("roundTrip").checked));
+  for (const m of ["train", "bus", "taxi"]) {
+    const gGo = guessFare(m, c.go, c.M), gBack = guessFare(m, c.back || c.go, c.M);
+    $(m + "_go").placeholder = gGo ? `예상 약 ${won(gGo)} (실제 요금 넣기)` : "실제 요금";
+    $(m + "_back").placeholder = gBack ? `예상 약 ${won(gBack)} (실제 요금 넣기)` : "실제 요금";
+  }
+  $("rentCap").textContent = `${won(K.rentcarCap.normal)}(전기차 ${won(K.rentcarCap.ev)})`;
+  $("localText").textContent = `1회 ${won(K.fareEstimate.지하철버스)} 기준으로 자동 계산해요 (${$("roundTrip").checked ? "하루 2회" : "하루 1회"} × ${c.days}일).`;
+  // 띄엄띄엄 날짜
+  $("dateBox").classList.toggle("hide", !c.sp);
+  ["startL", "endL"].forEach(id => $(id).classList.toggle("hide", c.sp));
+  $("tripDaysL").classList.toggle("hide", c.sleep || c.days < 2 || c.sp);
   $("stayNights").placeholder = `자동 (${Math.max(1, c.n || 0)}박)`;
   $("tripDays").placeholder = `자동 (${c.days}일)`;
-  $("taxiLabel").style.opacity = $("useTaxi").checked ? 1 : .4;
 }
 document.addEventListener("click", async e => {
   const b = e.target.closest(".cpb"); if (!b) return;
@@ -736,23 +797,19 @@ document.addEventListener("click", async e => {
 });
 
 // ---- 갱신·저장 ----
-const SAVE_IDS = ["who", "companions", "start", "end", "fuel", "kmGo", "kmBack", "tollGo", "tollBack", "parking", "pubCost", "fareOne", "fareBack", "taxiKm", "stayNights", "hotel", "tripDays", "lateDays", "people", "plan"];
+const SAVE_IDS = ["who", "companions", "start", "end", "fuel", "kmGo", "kmBack", "tollGo", "tollBack", "parking", "rentFee", "rentFuel", "compFuel", "train_go", "train_back", "bus_go", "bus_back", "taxi_go", "taxi_back", "stayNights", "hotel", "tripDays", "lateDays", "people", "plan"];
 function update() {
   render();
   try {
-    localStorage.setItem("trip-kr", JSON.stringify({ how, round: $("roundTrip").checked, subway: $("useSubway").checked, taxi: $("useTaxi").checked,
+    localStorage.setItem("trip-kr", JSON.stringify({ v: 2, modes: [...modes()], round: $("roundTrip").checked, spread: spread(), dates: spreadDates(),
       returnElse: $("returnElse").checked, back: getPlace($("back")), stay: stayPick, late: $("lateYes").checked,
       origin: getPlace($("origin")), dest: getPlace($("dest")), ways: [...document.querySelectorAll(".way")].map(getPlace),
       f: Object.fromEntries(SAVE_IDS.map(id => [id, $(id).value])) }));
   } catch (e) {}
 }
-function setHow(h) {
-  how = h;
-  document.querySelectorAll("#how button").forEach(b => b.classList.toggle("on", b.dataset.h === h));
-  $("pubBox").classList.toggle("hide", h === "car");
-  drawRoute();
-}
-document.querySelectorAll("#how button").forEach(b => b.onclick = () => { if (b.dataset.h !== how) $("fareOne").value = $("fareBack").value = ""; setHow(b.dataset.h); update(); }); // 기차↔버스 바꾸면 실제 요금은 다시
+$("modes").addEventListener("change", () => drawRoute()); // 고른 수단에 따라 네이버 칸·대중교통 버튼이 바뀜
+$("addDate").onclick = () => { addDate(); update(); };
+$("spread").addEventListener("change", () => { if (spread() && !document.querySelector(".dpick")) { addDate(val("start")); addDate(); } });
 document.querySelectorAll("#stay button").forEach(b => b.onclick = () => { stayPick = b.dataset.s; update(); });
 $("addWay").onclick = () => { addWay(); };
 document.addEventListener("input", e => {
@@ -774,10 +831,11 @@ if (saved) {
   $("roundTrip").checked = saved.round !== false;
   $("returnElse").checked = !!saved.returnElse;
   if (saved.back) setPlace($("back"), saved.back);
-  $("useSubway").checked = !!saved.subway; $("useTaxi").checked = !!saved.taxi;
+  const ms = saved.modes || [{ train: "train", bus: "bus", company: "company" }[saved.how] || "car"]; // 예전 저장값(한 가지만 고르던 때)도 읽음
+  document.querySelectorAll("#modes input").forEach(i => i.checked = ms.includes(i.value));
+  $("spread").checked = !!saved.spread; (saved.dates || []).forEach(d => addDate(d));
   stayPick = saved.stay || null;
   $("lateYes").checked = !!saved.late;
-  setHow(MAIN[saved.how] || saved.how === "car" ? saved.how : "car");
 }
 drawRoute(); update(); scheduleRoute();
 </script>
