@@ -119,6 +119,8 @@
   .notes div { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
   .notes .k { width: 120px; flex: none; color: var(--sub); }
   .notes .warn { color: var(--accent); font-weight: 700; }
+  .notes div.why { flex-wrap: wrap; }
+  .notes .whyIn { flex-basis: calc(100% - 128px); margin: 2px 0 2px 128px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -732,14 +734,11 @@ function cells() {
   return { ov, cost, c };
 }
 const cp = (t) => t ? `<button class="cpb" data-t="${esc(t)}">복사</button>` : "";
+// 이유를 적어야 하는 알림: 알림 아래 칸에 적은 내용이 기안 '출장계획' 칸 끝에 함께 들어감
+const WHY = { late: "기안 지연 사유", hotel: "숙박비 사유", taxi: "택시 이용 사유", rental: "렌터카 요금 사유" };
+let why = {};
 function render() {
   const { ov, cost, c } = cells();
-  const td = (v, cls = "v") => `<td class="${cls} ${v ? "" : "empty"}">${v ? esc(v) : "-"}${cp(v)}</td>`;
-  $("ov").innerHTML = `<tr><th>출장자</th>${td(ov[0][1])}<th>동행자</th>${td(ov[1][1])}</tr>`
-    + ov.slice(2).map(([k, v]) => `<tr><th>${esc(k)}</th><td class="v ${v ? "" : "empty"}" colspan="3">${v ? esc(v) : "-"}${cp(v)}</td></tr>`).join("");
-  $("cost").innerHTML = `<tr><th>항목</th><th>총 비용</th><th>비용산출내용</th></tr>`
-    + cost.map(([k, m, t]) => `<tr><th>${k === "유류비" || k === "통행료" || k === "주차비" ? `자차 · ${k}` : k}</th>${td(won(m), "money")}${td(t)}</tr>`).join("")
-    + `<tr class="total"><th>합계</th>${td(won(c.total), "money")}<td class="v empty"></td></tr>`;
 
   // 참고: 출장 구분, 마감, 권장 금액
   const notes = [], oneWay = (c.drive && +val("kmGo")) || (route && route.oneWay);
@@ -750,18 +749,18 @@ function render() {
   if (firstDay()) {
     const due = D(firstDay()); due.setDate(due.getDate() - R.apply.daysBefore);
     const t = new Date(); t.setHours(0, 0, 0, 0);
-    notes.push([`기안 승인 마감`, `${short(`${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-${String(due.getDate()).padStart(2, "0")}`)} (출발 ${R.apply.daysBefore}일 전)${t > due ? " · 지남, 사유 함께 기재" : ""}`, t > due]);
+    notes.push([`기안 승인 마감`, `${short(`${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-${String(due.getDate()).padStart(2, "0")}`)} (출발 ${R.apply.daysBefore}일 전)${t > due ? " · 지났어요 → 아래 칸에 늦어진 이유를 적어주세요" : ""}`, t > due, t > due && "late"]);
   }
   if (c.n + 1 >= R.apply.weeklyFromDays) notes.push(["2주 이상", "주별로 기안 상신", true]);
   const cls = cityClass();
   if (c.sleep) {
     const capV = cls && K.hotelCap[cls];
-    if (capV && +val("hotel") > capV) notes.push(["숙박비 확인", `권장 금액보다 높음 → 출장계획에 이유를 적어주세요`, true]);
+    if (capV && +val("hotel") > capV) notes.push(["숙박비 확인", `권장 금액보다 높음 → 아래 칸에 이유를 적어주세요`, true, "hotel"]);
     $("hotel").placeholder = capV ? `모르면 비워두세요 (${won(capV)}로 계산)` : "모르면 비워두세요 (권장 금액으로 계산)";
     renderHotel(cls, capV);
   }
-  if (c.taxiOver) notes.push(["택시 확인", `택시비가 ${won(taxiFare(K.taxiMaxKmOneWay))}을 넘어 편도 ${K.taxiMaxKmOneWay}km를 넘을 수 있어요 → 출장계획에 이유를 적어주세요`, true]);
-  if (c.M.has("rental")) { const capR = K.rentcarCap.normal, days = c.reps; if (+val("rentFee") > capR * days) notes.push(["렌터카 확인", `대여요금이 1일 ${won(capR)} × ${days}일보다 높아요 (전기차는 1일 ${won(K.rentcarCap.ev)}) → 이유를 적어주세요`, true]); }
+  if (c.taxiOver) notes.push(["택시 확인", `택시비가 ${won(taxiFare(K.taxiMaxKmOneWay))}을 넘어 편도 ${K.taxiMaxKmOneWay}km를 넘을 수 있어요 → 아래 칸에 이유를 적어주세요`, true, "taxi"]);
+  if (c.M.has("rental")) { const capR = K.rentcarCap.normal, days = c.reps; if (+val("rentFee") > capR * days) notes.push(["렌터카 확인", `대여요금이 1일 ${won(capR)} × ${days}일보다 높아요 (전기차는 1일 ${won(K.rentcarCap.ev)}) → 아래 칸에 이유를 적어주세요`, true, "rental"]); }
   if (!c.M.size) notes.push(["교통수단", "3번에서 교통수단을 하나 이상 골라주세요", true]);
   if (c.p >= K.groupConsultFrom) notes.push([`${c.p}명 이동`, "담당 팀과 교통·숙소 미리 상의", true]);
   if (c.car) {
@@ -774,7 +773,23 @@ function render() {
   if (c.kmGuess) notes.push(["네이버 거리", "아직 안 넣었습니다 → [네이버 ↗] 옆 노란 칸에 거리우선 km·통행료를 넣어주세요", true]);
   $("returnElseLabel").classList.toggle("hide", !$("roundTrip").checked);
   $("backRow").classList.toggle("hide", !($("roundTrip").checked && $("returnElse").checked));
-  $("notes").innerHTML = notes.map(([k, v, w]) => `<div><span class="k">${esc(k)}</span><span class="${w ? "warn" : ""}">${esc(v)}</span></div>`).join("");
+  // 칸에 글을 쓰는 동안 다시 그리면 한글 입력이 끊기므로, 알림 내용이 바뀔 때만 다시 그림
+  const nh = notes.map(([k, v, w, y]) => `<div${y ? ` class="why"` : ""}><span class="k">${esc(k)}</span><span class="${w ? "warn" : ""}">${esc(v)}</span>${y ? `<input class="whyIn need" data-y="${y}" placeholder="이유를 적어주세요 (기안 출장계획 칸 끝에 함께 들어가요)">` : ""}</div>`).join("");
+  if ($("notes").dataset.h !== nh) { $("notes").innerHTML = nh; $("notes").dataset.h = nh; }
+  // 이유를 적으면 빨간 글씨를 보통 글씨로
+  $("notes").querySelectorAll(".whyIn").forEach(i => {
+    if (document.activeElement !== i && i.value !== (why[i.dataset.y] || "")) i.value = why[i.dataset.y] || "";
+    i.previousElementSibling.classList.toggle("warn", !(why[i.dataset.y] || "").trim());
+  });
+  const ys = notes.map(n => n[3]).filter(y => y && (why[y] || "").trim());
+  if (ys.length) ov[4][1] = [ov[4][1], ...ys.map(y => `- ${WHY[y]} : ${why[y].trim()}`)].filter(Boolean).join("\n");
+
+  const td = (v, cls = "v") => `<td class="${cls} ${v ? "" : "empty"}">${v ? esc(v) : "-"}${cp(v)}</td>`;
+  $("ov").innerHTML = `<tr><th>출장자</th>${td(ov[0][1])}<th>동행자</th>${td(ov[1][1])}</tr>`
+    + ov.slice(2).map(([k, v]) => `<tr><th>${esc(k)}</th><td class="v ${v ? "" : "empty"}" colspan="3">${v ? esc(v) : "-"}${cp(v)}</td></tr>`).join("");
+  $("cost").innerHTML = `<tr><th>항목</th><th>총 비용</th><th>비용산출내용</th></tr>`
+    + cost.map(([k, m, t]) => `<tr><th>${k === "유류비" || k === "통행료" || k === "주차비" ? `자차 · ${k}` : k}</th>${td(won(m), "money")}${td(t)}</tr>`).join("")
+    + `<tr class="total"><th>합계</th>${td(won(c.total), "money")}<td class="v empty"></td></tr>`;
   // 숙박함이면 숙박 칸, 숙박 안 함이면 오가는 날 수·야근 칸만 보임
   document.querySelectorAll("#stay button").forEach(b => b.classList.toggle("on", b.dataset.s === stayMode()));
   // 하루짜리면 숙박 질문 자체를 숨김. 숙박하면 숙박비 칸, 아니면 야근 칸
@@ -821,7 +836,7 @@ function update() {
   render();
   try {
     localStorage.setItem("trip-kr", JSON.stringify({ v: 2, modes: [...modes()], round: $("roundTrip").checked, spread: spread(), dates: spreadDates(),
-      returnElse: $("returnElse").checked, back: getPlace($("back")), stay: stayPick, late: $("lateYes").checked,
+      returnElse: $("returnElse").checked, back: getPlace($("back")), stay: stayPick, late: $("lateYes").checked, why,
       origin: getPlace($("origin")), dest: getPlace($("dest")), ways: [...document.querySelectorAll(".way")].map(getPlace),
       f: Object.fromEntries(SAVE_IDS.map(id => [id, $(id).value])) }));
   } catch (e) {}
@@ -835,6 +850,7 @@ document.addEventListener("input", e => {
   // 주소를 손으로 고치면 주소 검색으로 고른 위치 정보는 버림
   if (e.isTrusted && e.target.classList.contains("place")) { delete e.target.dataset.geo; delete e.target.dataset.short; }
   if (e.target.classList.contains("place")) scheduleRoute();
+  if (e.target.dataset.y) why[e.target.dataset.y] = e.target.value;
   update();
 });
 document.addEventListener("change", e => { if (e.target.id === "roundTrip" || e.target.id === "returnElse") scheduleRoute(); update(); });
@@ -855,6 +871,7 @@ if (saved) {
   $("spread").checked = !!saved.spread; (saved.dates || []).forEach(d => addDate(d));
   stayPick = saved.stay || null;
   $("lateYes").checked = !!saved.late;
+  why = saved.why || {};
 }
 drawRoute(); update(); scheduleRoute();
 </script>
