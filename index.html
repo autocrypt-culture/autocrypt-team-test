@@ -670,18 +670,37 @@ let stayPick = null;
 function stayMode() { const n = nights(); return spread() || !(n > 0) ? "no" : stayPick || "yes"; }
 // 숙박: 도착지 지역의 권장 금액과 숙소 검색 버튼 (지역·날짜가 채워진 채로 열림)
 const CAP_TEXT = () => Object.entries(K.hotelCap).map(([k, v]) => `${k === "특별시" ? "서울" : k} ${v / 10000}만`).join(" · ");
+// 숙소 검색어는 건물 이름(예: 현대차 남양연구소)이 아니라 동네 이름(예: 화성시 남양읍)이어야 숙소가 나옴
+// 주소 검색으로 고른 곳은 '시 + 읍면 + 동리', 이름만 쓴 곳은 지도에서 찾은 위치의 시·읍면동을 씀
 function hotelArea() {
   const d = $("dest");
-  if (d.dataset.geo) { const q = JSON.parse(d.dataset.geo).find(x => !x.startsWith("=")); if (q) return q; }
+  if (d.dataset.geo) { const q = JSON.parse(d.dataset.geo).find(x => !x.startsWith("=")); if (q) return q.split(" ").slice(0, 2).join(" "); }
+  const last = route && route.pts && route.pts[route.pts.length - 1];
+  if (last) {
+    const a = last.g.address || {};
+    const city = a.city || a.county || a.town || "", sub = a.borough || a.suburb || a.village || a.quarter || "";
+    const area = [city, sub].filter(Boolean).join(" ");
+    if (area) return area;
+  }
   return placeName(d).replace(/\s*\(.*\)\s*$/, "");
+}
+// 네이버 지도를 도착지 위치를 가운데에 두고 '숙박'으로 검색 (좌표는 웹 메르카토르 m)
+function naverStayUrl() {
+  const last = route && route.pts && route.pts[route.pts.length - 1];
+  if (!last) return `https://map.naver.com/p/search/${enc(hotelArea() + " 숙박")}`;
+  const x = last.lon * 20037508.34 / 180, y = Math.log(Math.tan((90 + last.lat) * Math.PI / 360)) / (Math.PI / 180) * 20037508.34 / 180;
+  return `https://map.naver.com/p/search/${enc("숙박")}?c=${x.toFixed(2)},${y.toFixed(2)},14,0,0,0,dh`;
 }
 function renderHotel(cls, capV) {
   const area = hotelArea(), s = val("start"), e = val("end");
   $("capLine").innerHTML = capV
     ? `${esc(placeName($("dest")))}은 <b>${cls === "특별시" ? "서울" : cls === "광역시" ? "광역시" : "그 외 지역"}</b> → 1박 <b>${won(capV)} 이하</b>로 골라주세요<br><span class="muted">지역마다 달라요: ${CAP_TEXT()}</span>`
     : `<span class="muted">도착지를 넣으면 지역별 권장 금액이 나와요 (${CAP_TEXT()})</span>`;
-  $("hotelLinks").innerHTML = area ? [
-    link("네이버 지도 주변 숙소", `https://map.naver.com/p/search/${enc(area + " 숙소")}`),
+  // 가격 비교: 네이버 호텔(통합검색)·구글 호텔은 여러 예약 사이트 가격을 한 번에 보여줌
+  $("hotelLinks").innerHTML = area ? `<span class="muted" style="width:100%">가격 비교 · ${esc(area)} 기준</span>` + [
+    link("네이버 호텔 가격비교", `https://search.naver.com/search.naver?query=${enc(area + " 호텔")}`),
+    link("구글 호텔 가격비교", `https://www.google.com/travel/hotels?q=${enc(area + " 호텔")}&hl=ko`),
+    link("네이버 지도 주변 숙박", naverStayUrl()),
     link("야놀자", `https://www.yanolja.com/search/${enc(area)}`),
     link("여기어때", `https://www.goodchoice.kr/product/result?keyword=${enc(area)}`),
     link("아고다", `https://www.agoda.com/ko-kr/search?textToSearch=${enc(area)}${s && e ? `&checkIn=${s}&checkOut=${e}` : ""}&rooms=1&adults=1`),
