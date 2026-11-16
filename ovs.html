@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[해외출장] 여비 미리보기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #eef2f8; --card: #ffffff; --ink: #14181f; --sub: #5b6472; --line: #e3e7ee; --soft: #f4f6fa;
+    --accent: #b5452f; --dark: #1b2230; --ok: #2f7d4f; --blue: #2f6db5; --head: #dce8f6; --th: #8496b0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 "Noto Sans KR", system-ui, sans-serif; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 21px; margin: 0; }
+  .lead { color: var(--sub); margin: 4px 0 16px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 460px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border-radius: 8px; padding: 18px; margin-bottom: 14px; }
+  .panel h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .panel h2 .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--dark); color: #fff; font-size: 12px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+  .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 12px; color: var(--sub); }
+  label b { color: var(--accent); font-weight: 500; }
+  input, select, textarea { width: 100%; margin-top: 3px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font: inherit; background: #fff; color: var(--ink); }
+  input:focus, select:focus, textarea:focus { outline: 2px solid #b9c6dc; border-color: #b9c6dc; }
+  textarea { min-height: 56px; resize: vertical; }
+  input.need:placeholder-shown, textarea.need:placeholder-shown { background: #fff8e1; border-color: #f0c96a; }
+  .q { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+  .chips label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--ink); cursor: pointer; background: #fff; }
+  .chips input { width: auto; margin: 0; }
+  .chips label:has(input:checked) { background: var(--dark); color: #fff; border-color: var(--dark); }
+  /* 항공편: 날짜 · 출발 공항 · 시각 → 도착 공항 · 시각 */
+  .fl { display: grid; grid-template-columns: 52px 1fr .7fr 1fr .7fr; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .fl input { margin: 0; padding: 7px 6px; }
+  .fl .dt { grid-column: 2 / -1; }
+  .fl .nt { font-weight: 700; font-size: 13px; }
+  @media (max-width: 520px) { .fl { grid-template-columns: 1fr 1fr; } .fl .nt, .fl .dt { grid-column: 1 / -1; } .fl > span:not(.nt) { display: none; } }
+  .capline { background: var(--soft); border-radius: 6px; padding: 8px 10px; font-size: 13px; margin: 0 0 10px; }
+  .addchk { display: inline-flex; gap: 5px; align-items: center; font-size: 12px; color: var(--sub); cursor: pointer; }
+  .addchk input { width: auto; margin: 0; }
+  .nights { display: grid; grid-template-columns: 90px 1fr; gap: 6px 8px; align-items: center; margin-top: 6px; }
+  .nights span { font-size: 13px; }
+  .nights input { margin: 0; }
+  .etc { display: grid; grid-template-columns: 130px 1fr; gap: 6px 10px; align-items: center; }
+  .etc .addchk { font-size: 13px; color: var(--ink); }
+  .etc input[type=number], .etc input[type=text] { margin: 0; }
+  .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .links a { border: 1px solid #c9d5ea; background: #f3f7fd; color: var(--blue); text-decoration: none; padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+  .muted { color: var(--sub); font-size: 12px; }
+  .hide { display: none !important; }
+  details.more summary { cursor: pointer; font-size: 13px; color: var(--sub); }
+  details.more { padding: 12px 18px; }
+  /* 기안 양식 미리보기: 해외출장신청서와 같은 칸 */
+  .doc h3 { font-size: 14px; margin: 18px 0 6px; }
+  .doc h3:first-child { margin-top: 0; }
+  table.f { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .f th, .f td { border: 1px solid #9aa3b0; padding: 7px 9px; vertical-align: middle; }
+  .f th { background: var(--head); font-weight: 700; text-align: center; white-space: nowrap; }
+  .f th.grp { background: #c9d6e8; }
+  .f td.v { white-space: pre-line; position: relative; padding-right: 56px; }
+  .f td.money { text-align: right; white-space: nowrap; font-weight: 700; padding-right: 56px; position: relative; }
+  .f td.empty { color: #b0b7c3; }
+  .f td .tick { color: var(--sub); font-size: 11px; font-weight: 400; }
+  .cpb { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 1px solid var(--line); background: #fff; border-radius: 4px; padding: 2px 7px; font: inherit; font-size: 11px; cursor: pointer; }
+  .cpb.done { background: var(--ok); color: #fff; border-color: var(--ok); }
+  .f tr.total td, .f tr.total th { background: #f7f9fc; }
+  .notes { margin-top: 12px; font-size: 13px; }
+  .notes div { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .notes .k { width: 120px; flex: none; color: var(--sub); }
+  .notes .warn { color: var(--accent); font-weight: 700; }
+  .notes div.why { flex-wrap: wrap; }
+  .notes .whyIn { flex-basis: calc(100% - 128px); margin: 2px 0 2px 128px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>[해외출장] 여비 미리보기</h1>
+  <p class="lead">출장기간, 나라·도시, 항공편과 숙소를 넣으면 예상 금액이 나옵니다. 오른쪽 해외출장신청서 칸을 그대로 복사해서 붙여넣으세요.</p>
+
+  <div class="grid">
+    <div>
+      <section class="panel">
+        <h2><span class="n">1</span>누가 · 언제</h2>
+        <div class="fields">
+          <label>출장자 <b>*</b><input id="who" placeholder="홍길동 과장"></label>
+          <label>소속 (제목에 들어가요)<input id="team" placeholder="예: 인사총무그룹"></label>
+          <label class="full">동행자<input id="companions" placeholder="없으면 비워두세요 (여럿이면 쉼표로)"></label>
+          <label>출장 시작일 <b>*</b><input type="date" id="start"></label>
+          <label>출장 종료일 <b>*</b><input type="date" id="end"></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2><span class="n">2</span>어디로</h2>
+        <div class="fields">
+          <label>나라 <b>*</b><input id="country" placeholder="일본"></label>
+          <label>도시 <b>*</b><input id="city" placeholder="도쿄"></label>
+          <label class="full">주요업무내용<textarea id="task" placeholder="경영진 미팅"></textarea></label>
+        </div>
+        <div class="capline" id="gradeLine" style="margin-top:10px"></div>
+      </section>
+
+      <section class="panel">
+        <h2><span class="n">3</span>교통편</h2>
+        <div class="chips" id="modes">
+          <label><input type="checkbox" value="비행기" checked>비행기</label>
+          <label><input type="checkbox" value="기차">기차</label>
+          <label><input type="checkbox" value="렌터카">렌터카</label>
+          <label><input type="checkbox" value="버스">버스</label>
+          <label><input type="checkbox" value="그 외">그 외</label>
+        </div>
+        <div class="fl"><span class="nt">출국편</span><input type="date" id="outDate" class="dt" aria-label="출국 날짜">
+          <span></span><input id="outFrom" placeholder="인천" aria-label="출국 출발 공항"><input id="outDep" placeholder="15:20" aria-label="출국 출발 시각"><input id="outTo" placeholder="도착 공항" aria-label="출국 도착 공항"><input id="outArr" placeholder="17:45" aria-label="출국 도착 시각"></div>
+        <div class="fl"><span class="nt">귀국편</span><input type="date" id="inDate" class="dt" aria-label="귀국 날짜">
+          <span></span><input id="inFrom" placeholder="출발 공항" aria-label="귀국 출발 공항"><input id="inDep" placeholder="18:55" aria-label="귀국 출발 시각"><input id="inTo" placeholder="인천" aria-label="귀국 도착 공항"><input id="inArr" placeholder="21:40" aria-label="귀국 도착 시각"></div>
+        <p class="muted" style="margin:0 0 4px 58px">공항 · 출발 시각 → 공항 · 도착 시각</p>
+        <div class="fields" style="margin-top:8px">
+          <label>교통편 총비용 (원) <b>*</b><input type="number" id="fare" min="0" step="100" placeholder="항공권 등 전체 인원 합계"></label>
+          <label>좌석 안내용 직급<select id="rank"></select></label>
+          <label>비행시간 (편도, 시간)<input type="number" id="flightHours" min="0" step="0.5" placeholder="예: 2.5"></label>
+        </div>
+        <div class="capline" id="seatLine" style="margin-top:10px"></div>
+        <div class="links" id="flightLinks"></div>
+      </section>
+
+      <section class="panel" id="stayPanel">
+        <h2><span class="n">4</span>숙박</h2>
+        <div class="capline" id="capLine"></div>
+        <div class="fields">
+          <label>숙소 이름<input id="hotelName" placeholder="예: OO호텔 도쿄"></label>
+          <label>성급<select id="star"><option>3성급</option><option>4성급</option><option>5성급</option><option>그 외</option></select></label>
+          <label>체크인<input type="date" id="ci"></label>
+          <label>체크아웃<input type="date" id="co"></label>
+          <label class="full" id="hotelL">1박 금액 (원, 세금 빼고 · 여럿이면 방 값을 모두 더해서)<input type="number" id="hotel" min="0" step="1000"></label>
+        </div>
+        <label class="addchk" style="margin-top:8px"><input type="checkbox" id="diffNight">밤마다 금액이 달라요</label>
+        <div class="nights hide" id="nightBox"></div>
+        <div class="fields" style="margin-top:10px">
+          <label>세금·봉사료 (원)<input type="number" id="tax" min="0" step="100" placeholder="따로 붙으면 넣어주세요"></label>
+          <span></span>
+          <label class="full">숙박선택사유<textarea id="hotelWhy" placeholder="예: 미팅 장소와 도보 5분"></textarea></label>
+        </div>
+        <div class="links" id="hotelLinks"></div>
+      </section>
+
+      <section class="panel">
+        <h2><span class="n" id="etcNo">5</span>일비 · 기타</h2>
+        <div class="capline" id="perDiemLine"></div>
+        <div class="etc">
+          <label class="addchk"><input type="checkbox" id="e_tel">국제통신비</label><input type="number" id="e_telAmt" min="0" step="100">
+          <label class="addchk"><input type="checkbox" id="e_visa">비자발급비</label><input type="number" id="e_visaAmt" min="0" step="100" placeholder="금액 (원)">
+          <label class="addchk"><input type="checkbox" id="e_ent">접대비</label><input type="number" id="e_entAmt" min="0" step="100" placeholder="금액 (원)">
+          <label class="addchk"><input type="checkbox" id="e_other">그 외</label><input type="text" id="e_otherName" placeholder="무엇인지 (예: 현지 교통비)">
+          <span></span><input type="number" id="e_otherAmt" min="0" step="100" placeholder="금액 (원)">
+        </div>
+      </section>
+
+      <details class="panel more">
+        <summary>필요할 때만 (인원)</summary>
+        <div class="fields" style="margin-top:12px">
+          <label>인원<input type="number" id="people" min="1" placeholder="자동 (출장자+동행자)"></label>
+        </div>
+      </details>
+    </div>
+
+    <div>
+      <section class="panel doc">
+        <h3>■ 출장정보</h3>
+        <table class="f" id="info"></table>
+        <h3>■ 상세일정</h3>
+        <table class="f" id="detail"></table>
+        <p class="muted">모든 금액은 예상 금액이에요. 실제 정산은 영수증 기준입니다. 칸마다 [복사]를 눌러 해외출장신청서의 같은 칸에 붙여넣고, 체크 칸은 표에 적힌 대로 체크해 주세요.</p>
+        <div class="notes" id="notes"></div>
+      </section>
+    </div>
+  </div>
+  <p class="muted">이 화면은 출장 준비를 돕는 가이드입니다. 상황에 따라 다를 수 있으니 애매하면 담당 팀에 물어봐 주세요.</p>
+</div>
+
+<!-- make-form.ps1 이 아래 줄을 기준 데이터로 바꿔 넣어 파일 하나짜리 양식을 만듭니다 -->
+<script>window.RULES = {
+  tripType: {
+    outingKm: 50,
+  },
+  apply: {
+    daysBefore: 3,
+    lateWithinDays: 14,
+    weeklyFromDays: 14,
+  },
+  domestic: {
+    hotelCap: {
+      "특별시": 130000,
+      "광역시": 100000,
+      "그 외": 90000,
+    },
+    taxiMaxKmOneWay: 30,
+    rentcarCap: { normal: 80000, ev: 100000 },
+    fuelPerKm: { "휘발유": 255, "경유": 254, "LPG": 179, "전기차": 90 },
+    fuelPeriod: { label: "26년 4분기", from: "2026-10-01", to: "2026-12-31", basis: "2026 3Q 국내유가통계" },
+    dinnerPerNight: 12000,
+    recommend: { nearKm: 30, farKm: 150, transitMaxMin: 120 },
+    fareEstimate: { 기차: { perKm: 150, min: 8400 }, 고속버스: { perKm: 65, min: 5000 }, 지하철버스: 1500, 택시기본: 4800, 택시km: 1000 },
+    lateDinnerAfter: "21:00",
+    lateMeal: 12000,
+    groupConsultFrom: 4,
+    hotelPicks: {},
+    seat: {
+      check: true,
+      ktx: { "대표이사/사장": "특실(우등)", "부사장/전무": "특실(우등)", "상무~이사": "일반", "그 외": "일반" },
+      expressBus: { "대표이사/사장": "프리미엄", "부사장/전무": "우등", "상무~이사": "우등", "그 외": "일반" },
+      flight: "이코노미 (업무상 불가피한 경우만)",
+    },
+  },
+  overseas: {
+    hotelCap: {
+      "1급지": 240000,
+      "2급지": 190000,
+      "3급지": 150000,
+    },
+    hotelMaxTransitMin: 20,
+    seat: {
+      "의장/대표이사": { under8: "비즈니스", over8: "비즈니스" },
+      "사장~전무": { under8: "이코노미", over8: "비즈니스", check: true },
+      "상무~이사": { under8: "이코노미", over8: "이코노미", check: true },
+      "그 외": { under8: "이코노미", over8: "이코노미" },
+    },
+    perDiemUSD: { "1급지": 70, "2급지": 70, "3급지": 50 },
+    perDiemRate: [[5, 1.0], [10, 0.9], [15, 0.8], [999, 0.7]],
+    simPerDay: 4000,
+    grade: {
+      "1급지": ["도쿄", "뉴욕", "런던", "로스앤젤레스", "파리", "홍콩", "베이징", "상하이", "샌프란시스코", "싱가포르", "워싱턴 D.C.", "제네바"],
+      "2급지": ["타이완", "일본", "인도", "멕시코", "캐나다", "미국", "네덜란드", "독일", "영국", "프랑스", "스페인", "이탈리아", "스위스", "아랍에미리트", "이스라엘", "남아프리카공화국", "사우디아라비아"],
+      "3급지": ["중국", "인도네시아", "말레이시아", "터키", "베트남", "필리핀", "네팔", "몽골", "브라질", "아르헨티나", "칠레", "페루", "콜롬비아", "파라과이", "체코", "폴란드", "헝가리", "요르단", "이집트", "케냐", "나이지리아", "이란", "마다가스카르"],
+    },
+  },
+};
+</script>
+<script>
+const R = window.RULES, O = R.overseas;
+const $ = id => document.getElementById(id);
+const enc = encodeURIComponent;
+const won = n => n ? Number(n).toLocaleString("ko-KR") + "원" : "";
+const usd = n => `USD ${Number(n).toLocaleString("en-US")}`;
+const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const val = id => $(id).value.trim();
+const link = (t, u) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)} ↗</a>`;
+// 자주 가는 도시의 항공 검색 코드. 없으면 항공권 버튼이 안 생김
+const IATA = {
+  "도쿄": "TYO", "오사카": "OSA", "나고야": "NGO", "후쿠오카": "FUK", "삿포로": "SPK",
+  "상하이": "SHA", "베이징": "BJS", "선전": "SZX", "광저우": "CAN", "칭다오": "TAO", "톈진": "TSN", "항저우": "HGH", "충칭": "CKG",
+  "홍콩": "HKG", "타이베이": "TPE", "싱가포르": "SIN", "방콕": "BKK", "하노이": "HAN", "호치민": "SGN", "자카르타": "JKT", "쿠알라룸푸르": "KUL", "마닐라": "MNL",
+  "뉴욕": "NYC", "로스앤젤레스": "LAX", "샌프란시스코": "SFO", "디트로이트": "DTT", "시카고": "CHI", "워싱턴": "WAS", "라스베이거스": "LAS", "시애틀": "SEA",
+  "런던": "LON", "파리": "PAR", "프랑크푸르트": "FRA", "뮌헨": "MUC", "베를린": "BER", "암스테르담": "AMS", "로마": "ROM", "밀라노": "MIL", "바르셀로나": "BCN", "마드리드": "MAD", "취리히": "ZRH", "제네바": "GVA", "프라하": "PRG", "바르샤바": "WAW", "부다페스트": "BUD", "빈": "VIE",
+  "두바이": "DXB", "델리": "DEL", "뭄바이": "BOM", "벵갈루루": "BLR", "시드니": "SYD", "멜버른": "MEL", "토론토": "YTO", "밴쿠버": "YVR", "멕시코시티": "MEX",
+};
+// 사전 전자여행허가가 필요한 대표 국가. 그 외 국가는 외교부 사이트에서 확인
+const ETA = { "미국": "ESTA", "캐나다": "eTA", "영국": "ETA", "호주": "ETA", "뉴질랜드": "NZeTA" };
+
+// ---- 날짜 ----
+const D = s => s ? new Date(s + "T00:00:00") : null;
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const wk = d => "일월화수목금토"[d.getDay()];
+const full = s => s ? `${s}(${wk(D(s))})` : "";
+const short = s => s ? `${D(s).getMonth() + 1}/${D(s).getDate()}(${wk(D(s))})` : "";
+const md = s => s ? `${s.slice(5, 7)}-${s.slice(8, 10)}` : "";
+const addDays = (s, k) => { const d = D(s); d.setDate(d.getDate() + k); return ymd(d); };
+const between = (a, b) => a && b ? Math.round((D(b) - D(a)) / 86400000) : null;
+function people() { return +val("people") || 1 + (val("companions") ? val("companions").split(",").filter(x => x.trim()).length : 0); }
+
+// ---- 급지: 도시 이름을 먼저 보고, 없으면 나라 이름으로 ----
+function grade() {
+  const c = val("city"), k = val("country");
+  const hit = (g, x) => x && O.grade[g].some(n => x.includes(n) || n.includes(x));
+  return ["1급지", "2급지", "3급지"].find(g => hit(g, c)) || ["2급지", "3급지"].find(g => hit(g, k)) || "";
+}
+const GRADE_TEXT = () => Object.entries(O.hotelCap).map(([g, v]) => `${g} ${v / 10000}만`).join(" · ");
+
+// ---- 좌석 안내 ----
+Object.keys(O.seat).forEach(k => $("rank").insertAdjacentHTML("beforeend", `<option>${esc(k)}</option>`));
+$("rank").value = "그 외";
+function seatText() {
+  const s = O.seat[$("rank").value], h = +val("flightHours");
+  if (!s) return "";
+  return h ? `${h < 8 ? "8시간 미만" : "8시간 이상"} → <b>${h < 8 ? s.under8 : s.over8}</b>` : `8시간 미만 <b>${s.under8}</b> · 8시간 이상 <b>${s.over8}</b>`;
+}
+
+// ---- 항공편 칸 ----
+// 날짜를 비워 두면 출장 시작·종료일로 봄. 공항 이름을 비워 두면 인천으로 봄
+function flight(p, dDef) {
+  const d = val(p + "Date") || dDef, from = val(p + "From") || (p === "out" ? "인천" : ""), to = val(p + "To") || (p === "in" ? "인천" : "");
+  const t = x => val(p + x) ? `(${val(p + x)})` : "";
+  if (!d && !val(p + "From") && !val(p + "To")) return "";
+  return `${short(d)} ${from}${t("Dep")} → ${to}${t("Arr")}`.trim();
+}
+
+// ---- 숙박 ----
+let nightFee = {};
+function stay() {
+  const ci = val("ci") || val("start"), co = val("co") || val("end");
+  const hn = Math.max(0, between(ci, co) || 0);
+  const dates = Array.from({ length: hn }, (_, i) => addDays(ci, i));
+  const p = people(), g = grade(), capV = O.hotelCap[g] || 0, capAll = capV * p;
+  const diff = $("diffNight").checked;
+  let per = dates.map(d => diff ? +nightFee[d] || 0 : +val("hotel") || 0);
+  // 금액을 하나도 안 넣었으면 권장 금액으로 예상
+  const guess = hn > 0 && !per.some(Boolean) && capAll > 0;
+  if (guess) per = dates.map(() => capAll);
+  const tax = +val("tax") || 0;
+  const total = per.reduce((a, b) => a + b, 0) + (hn ? tax : 0);
+  return { ci, co, hn, dates, per, tax, total, guess, capV, capAll, over: !guess && per.some(x => capAll && x > capAll) };
+}
+function renderNights(s) {
+  const box = $("nightBox");
+  box.classList.toggle("hide", !$("diffNight").checked);
+  $("hotelL").classList.toggle("hide", $("diffNight").checked);
+  const key = s.dates.join(",");
+  if (box.dataset.k === key) return; // 칸에 쓰는 동안 다시 그리면 입력이 끊김
+  box.dataset.k = key;
+  box.innerHTML = s.dates.map(d => `<span>${short(d)}</span><input type="number" class="nf" data-d="${d}" min="0" step="1000" value="${nightFee[d] || ""}" placeholder="이 날 1박 금액 (원)">`).join("") || `<span class="muted" style="grid-column:1/-1">체크인·체크아웃을 넣어주세요</span>`;
+}
+
+// ---- 일비: 출장 일수 × 급지별 1일 금액 (오래 머물면 비율이 줄어듦) ----
+function perDiem() {
+  const n = between(val("start"), val("end")), g = grade();
+  if (n == null || n < 0 || !g) return null;
+  const d = n + 1, a = O.perDiemUSD[g], rate = O.perDiemRate.find(([m]) => d <= m)[1];
+  return { d, a, rate, one: Math.round(a * d * rate), p: people(), g };
+}
+
+// ---- 기타 ----
+function etc(days) {
+  const p = people(), rows = [];
+  const telAuto = O.simPerDay * Math.max(1, days || 1) * p;
+  if ($("e_tel").checked) { const a = +val("e_telAmt") || telAuto; rows.push(["국제통신비", a, val("e_telAmt") ? "" : ` (eSIM 1일 ${won(O.simPerDay)} × ${days || 1}일${p > 1 ? ` × ${p}명` : ""})`]); }
+  if ($("e_visa").checked) rows.push(["비자발급비", +val("e_visaAmt") || 0, ""]);
+  if ($("e_ent").checked) rows.push(["접대비", +val("e_entAmt") || 0, ""]);
+  if ($("e_other").checked) rows.push([`그 외 (${val("e_otherName") || "내용"})`, +val("e_otherAmt") || 0, ""]);
+  return { rows, telAuto, total: rows.reduce((a, r) => a + r[1], 0) };
+}
+
+function calc() {
+  const n = between(val("start"), val("end")), p = people();
+  const s = stay(), pd = perDiem(), e = etc(n != null && n >= 0 ? n + 1 : 0);
+  const fare = +val("fare") || 0;
+  return { n, p, s, pd, e, fare, total: fare + s.total + e.total };
+}
+
+const cp = t => t ? `<button class="cpb" data-t="${esc(t)}">복사</button>` : "";
+// 이유를 적어야 하는 알림: 적은 내용이 '주요업무내용' 칸 끝에 함께 들어감 (숙박 사유는 양식에 칸이 따로 있음)
+const WHY = { late: "기안 지연 사유", rental: "렌터카 이용 사유" };
+let why = {};
+function render() {
+  const c = calc(), s = c.s, g = grade();
+  const st = val("start"), en = val("end");
+  const modes = [...document.querySelectorAll("#modes input:checked")].map(i => i.value);
+
+  // 왼쪽 안내 줄
+  $("gradeLine").innerHTML = g
+    ? `${esc(val("city") || val("country"))} → <b>${g}</b> · 숙박 1인 1박 <b>${won(O.hotelCap[g])} 이하, 3성급</b> · 일비 1일 <b>${usd(O.perDiemUSD[g])}</b>`
+    : `<span class="muted">나라·도시를 넣으면 지역(급지)별 권장 금액이 나와요 (${GRADE_TEXT()})</span>`;
+  $("seatLine").innerHTML = `좌석: ${seatText()} <span class="muted">· 직항을 먼저 보고, 바꿀 가능성이 있으면 변경 수수료 없는 운임으로</span>`;
+  const code = IATA[val("city")];
+  const fd = val("outDate") || st, bd = val("inDate") || en;
+  $("flightLinks").innerHTML = code && fd && bd ? [
+    link("네이버 항공권", `https://flight.naver.com/flights/international/SEL-${code}-${fd.replace(/-/g, "")}/${code}-SEL-${bd.replace(/-/g, "")}?adult=${c.p}&fareType=Y`),
+    link("구글 항공권", `https://www.google.com/travel/flights?q=${enc(`Flights from SEL to ${code} on ${fd} through ${bd}`)}&hl=ko`),
+  ].join("") : "";
+
+  $("stayPanel").classList.toggle("hide", !(c.n > 0));
+  $("etcNo").textContent = c.n > 0 ? 5 : 4;
+  renderNights(s);
+  $("capLine").innerHTML = g
+    ? `${g} → 1인 1박 <b>${won(s.capV)} 이하, 3성급</b>을 권장해요${c.p > 1 ? ` (${c.p}명이면 ${won(s.capAll)})` : ""}. 조식은 빼고, 방문지에서 대중교통 ${O.hotelMaxTransitMin}분 안쪽이 좋아요.`
+    : `<span class="muted">나라·도시를 넣으면 권장 금액이 나와요 (${GRADE_TEXT()})</span>`;
+  $("hotel").placeholder = s.capAll ? `모르면 비워두세요 (${won(s.capAll)}로 계산)` : "모르면 비워두세요";
+  const area = val("city") || val("country");
+  $("hotelLinks").innerHTML = area ? `<span class="muted" style="width:100%">가격 비교 · ${esc(area)}</span>` + [
+    link("구글 호텔", `https://www.google.com/travel/hotels?q=${enc(area + " 호텔")}&hl=ko`),
+    link("네이버 호텔", `https://search.naver.com/search.naver?query=${enc(area + " 호텔")}`),
+    link("아고다", `https://www.agoda.com/ko-kr/search?textToSearch=${enc(area)}${s.ci && s.co ? `&checkIn=${s.ci}&checkOut=${s.co}` : ""}&rooms=1&adults=1`),
+    link("부킹닷컴", `https://www.booking.com/searchresults.ko.html?ss=${enc(area)}${s.ci && s.co ? `&checkin=${s.ci}&checkout=${s.co}` : ""}&group_adults=1&no_rooms=1`),
+  ].join("") : "";
+  const needWhy = c.n > 0 && (s.over || /[45]성급/.test($("star").value));
+  $("hotelWhy").classList.toggle("need", needWhy);
+  $("perDiemLine").innerHTML = c.pd
+    ? `일비(식비 포함) 예상 <b>${usd(c.pd.one)}</b>${c.p > 1 ? ` × ${c.p}명` : ""} <span class="muted">(${usd(c.pd.a)} × ${c.pd.d}일${c.pd.rate < 1 ? ` × ${c.pd.rate * 100}%` : ""}) · 법인카드로 결제해요. 합계에는 안 들어가요</span>`
+    : `<span class="muted">출장기간과 나라·도시를 넣으면 일비 예상이 나와요</span>`;
+  $("e_telAmt").placeholder = `eSIM 1일 ${won(O.simPerDay)} 기준 ${won(c.e.telAuto)}`;
+
+  // 참고 알림
+  const notes = [];
+  if (g) notes.push(["지역(급지)", `${g} · 숙박 1인 1박 ${won(O.hotelCap[g])} · 일비 1일 ${usd(O.perDiemUSD[g])}`]);
+  else if (val("city") || val("country")) notes.push(["지역(급지)", "목록에 없는 곳이에요 → 담당 팀에 물어봐 주세요", true]);
+  const first = [st, val("outDate")].filter(Boolean).sort()[0];
+  if (first) {
+    const due = addDays(first, -R.apply.daysBefore), t = ymd(new Date());
+    notes.push(["기안 승인 마감", `${short(due)} (출발 ${R.apply.daysBefore}일 전)${t > due ? " · 지났어요 → 아래 칸에 늦어진 이유를 적어주세요" : ""}`, t > due, t > due && "late"]);
+  }
+  // 출장기간은 출국일~귀국일과 같아야 함
+  if (st && val("outDate") && val("outDate") !== st) notes.push(["날짜 확인", `출국편(${short(val("outDate"))})과 출장 시작일(${short(st)})이 달라요 → 출장기간을 출국일부터로 맞춰주세요`, true]);
+  if (en && val("inDate") && val("inDate") !== en) notes.push(["날짜 확인", `귀국편(${short(val("inDate"))})과 출장 종료일(${short(en)})이 달라요 → 출장기간을 귀국일까지로 맞춰주세요`, true]);
+  if (c.n > 0) {
+    const wrote = val("hotelWhy") ? " · 숙박선택사유 적음" : " → 숙박선택사유를 적어주세요";
+    if (s.over) notes.push(["숙박비 확인", `1박 금액이 권장 금액(${won(s.capAll)})보다 높아요${wrote}`, !val("hotelWhy")]);
+    if (/[45]성급/.test($("star").value)) notes.push(["숙박 성급", `${$("star").value} (권장 3성급)${wrote}`, !val("hotelWhy")]);
+    if (s.guess) notes.push(["숙박비", "1박 금액을 안 넣어서 권장 금액으로 계산했어요"]);
+  }
+  if (modes.includes("비행기")) notes.push(["항공 좌석", `${$("rank").value} · ${seatText().replace(/<\/?b>/g, "")}`]);
+  if (c.n != null && c.n + 1 >= R.apply.weeklyFromDays) notes.push(["2주 이상", "주별로 기안 상신", true]);
+  if (modes.includes("렌터카")) notes.push(["렌터카", "현지 사정상 꼭 필요할 때만, 출발 전 담당 팀과 상의 → 아래 칸에 이유를 적어주세요", true, "rental"]);
+  if (c.p >= R.domestic.groupConsultFrom) notes.push([`${c.p}명 이동`, "담당 팀과 항공·숙소 미리 상의", true]);
+  const ctry = val("country");
+  if (ctry) notes.push([ETA[ctry] ? `${ETA[ctry]} 신청` : "비자·입국허가", ETA[ctry] ? `${ctry} 입국 전 ${ETA[ctry]} 신청 (출국 3일 전 권장, 비용은 기타 '비자발급비')` : "외교부 해외안전여행(0404.go.kr)에서 확인"]);
+  notes.push(["여권", "입국일 기준 6개월 이상 남았는지 확인"]);
+  notes.push(["일비", "법인카드로 결제. 카드가 어려운 곳이면 일비 사전지급 요청"]);
+  const nh = notes.map(([k, v, w, y]) => `<div${y ? ` class="why"` : ""}><span class="k">${esc(k)}</span><span class="${w ? "warn" : ""}">${esc(v)}</span>${y ? `<input class="whyIn need" data-y="${y}" placeholder="이유를 적어주세요 (주요업무내용 칸 끝에 함께 들어가요)">` : ""}</div>`).join("");
+  if ($("notes").dataset.h !== nh) { $("notes").innerHTML = nh; $("notes").dataset.h = nh; }
+  $("notes").querySelectorAll(".whyIn").forEach(i => {
+    if (document.activeElement !== i && i.value !== (why[i.dataset.y] || "")) i.value = why[i.dataset.y] || "";
+    i.previousElementSibling.classList.toggle("warn", !(why[i.dataset.y] || "").trim());
+  });
+  const ys = notes.map(n => n[3]).filter(y => y && (why[y] || "").trim());
+  const task = [val("task"), ...ys.map(y => `- ${WHY[y]} : ${why[y].trim()}`)].filter(Boolean).join("\n");
+
+  // 오른쪽: 해외출장신청서 칸
+  const name = val("who").split(/\s+/)[0];
+  const title = st && en && name ? `[해외출장] ${val("team") ? val("team") + "_" : ""}${name}_${val("country")} - ${val("city")}/${md(st)}~${md(en)}` : "";
+  const period = st && en ? `${full(st)} ~ ${full(en)} , [총 ${c.n}박${c.n + 1}일]` : "";
+  const info = [["제목", title], ["출장자", val("who")], ["출장기간", period], ["출장지", val("country") || val("city") ? `${val("country")} - ${val("city")}` : ""], ["주요업무내용", task], ["동행자", val("companions")]];
+  const hotelText = c.n > 0 && s.hn ? `총금액: ${won(s.total)}\n\n(1박 금액)\n${s.dates.map((d, i) => `- ${short(d)}: ${won(s.per[i]) || "0원"}`).join("\n")}${s.tax ? `\n- 세금: ${won(s.tax)}` : ""}${s.guess ? "\n(권장 금액 기준 예상)" : ""}` : "";
+  const pdText = c.pd ? `법인카드 결제를 원칙으로 하며\n카드결제가 어려운 출장지의 경우 일비 사전지급 요청\n(예상 ${usd(c.pd.one)}${c.p > 1 ? ` × ${c.p}명 = ${usd(c.pd.one * c.p)}` : ""} · ${usd(c.pd.a)} × ${c.pd.d}일${c.pd.rate < 1 ? ` × ${c.pd.rate * 100}%` : ""})` : "";
+  const etcText = c.e.rows.map(([k, a, x]) => `- ${k} : ${won(a) || "0원"}${x}`).join("\n");
+  const td = (v, cls = "v", span = 1) => `<td class="${cls} ${v ? "" : "empty"}"${span > 1 ? ` colspan="${span}"` : ""}>${v ? esc(v) : "-"}${cp(v)}</td>`;
+  const tick = t => `<td class="v ${t ? "" : "empty"}" colspan="3">${t ? `${esc(t)} <span class="tick">← 체크</span>` : "-"}</td>`;
+  $("info").innerHTML = info.map(([k, v]) => `<tr><th>${k}</th>${td(v)}</tr>`).join("");
+  $("detail").innerHTML =
+    `<tr><th class="grp" rowspan="3">교통편</th><th>교통편</th>${tick(modes.join(", "))}</tr>`
+    + `<tr><th>출국편</th>${td(flight("out", st), "v", 3)}</tr>`
+    + `<tr><th>귀국편</th>${td(flight("in", en))}<th>총비용</th>${td(won(c.fare), "money")}</tr>`
+    + (c.n > 0 ? `<tr><th class="grp" rowspan="3">숙박편</th><th>숙박명</th>${td(val("hotelName"))}<th>성급</th>${td($("star").value)}</tr>`
+      + `<tr><th>숙박선택사유</th>${td(val("hotelWhy"), "v", 3)}</tr>`
+      + `<tr><th>숙박일정</th>${td(s.hn ? `${short(s.ci)}~${short(s.co)}` : "")}<th>총비용</th>${td(hotelText)}</tr>` : "")
+    + `<tr><th class="grp" rowspan="2">기타</th><th>일비<br>(식비 포함)</th>${td(pdText, "v", 3)}</tr>`
+    + `<tr><th>기타</th>${c.e.rows.length ? `<td class="v" colspan="3">${esc(etcText)} <span class="tick">← 해당 칸 체크</span>${cp(etcText)}</td>` : `<td class="v empty" colspan="3">-</td>`}</tr>`
+    + `<tr class="total"><th colspan="4" style="text-align:right">총합계</th>${td(won(c.total), "money")}</tr>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".cpb"); if (!b) return;
+  const t = b.dataset.t;
+  try { await navigator.clipboard.writeText(t); }
+  catch (err) { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  b.classList.add("done"); b.textContent = "복사됨";
+  setTimeout(() => { b.classList.remove("done"); b.textContent = "복사"; }, 1500);
+});
+
+// ---- 갱신·저장 ----
+const SAVE_IDS = ["who", "team", "companions", "start", "end", "country", "city", "task", "outDate", "outFrom", "outDep", "outTo", "outArr", "inDate", "inFrom", "inDep", "inTo", "inArr", "fare", "rank", "flightHours",
+  "hotelName", "star", "ci", "co", "hotel", "tax", "hotelWhy", "e_telAmt", "e_visaAmt", "e_entAmt", "e_otherName", "e_otherAmt", "people"];
+const SAVE_CHK = ["diffNight", "e_tel", "e_visa", "e_ent", "e_other"];
+function update() {
+  render();
+  try {
+    localStorage.setItem("trip-ovs", JSON.stringify({ v: 1, modes: [...document.querySelectorAll("#modes input:checked")].map(i => i.value), nightFee, why,
+      f: Object.fromEntries(SAVE_IDS.map(id => [id, $(id).value])), c: Object.fromEntries(SAVE_CHK.map(id => [id, $(id).checked])) }));
+  } catch (e) {}
+}
+document.addEventListener("input", e => {
+  if (e.target.classList.contains("nf")) nightFee[e.target.dataset.d] = e.target.value;
+  if (e.target.dataset.y) why[e.target.dataset.y] = e.target.value;
+  update();
+});
+document.addEventListener("change", () => update());
+
+// 시작: 이 브라우저에 입력하던 내용이 있으면 이어서 보여줌
+let saved = null;
+try { saved = JSON.parse(localStorage.getItem("trip-ovs") || "null"); } catch (e) {}
+if (saved) {
+  Object.entries(saved.f || {}).forEach(([id, v]) => { if ($(id) && v != null) $(id).value = v; });
+  Object.entries(saved.c || {}).forEach(([id, v]) => { if ($(id)) $(id).checked = !!v; });
+  if (saved.modes) document.querySelectorAll("#modes input").forEach(i => i.checked = saved.modes.includes(i.value));
+  nightFee = saved.nightFee || {}; why = saved.why || {};
+}
+update();
+</script>
+</body>
+</html>
